@@ -23,4 +23,7 @@ COPY launch.service /etc/systemd/system/launch.service
 
 RUN systemctl enable /etc/systemd/system/launch.service
 
+ENV RESIN_STOP_SIGNAL SIGRTMIN+3
+STOPSIGNAL 37
+
 ENTRYPOINT ["/usr/bin/entry.sh"]

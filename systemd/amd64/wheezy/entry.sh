@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# Send SIGTERM to child processes of PID 1.
+signal_handler()
+{
+	pkill -P 1
+}
+
 HOSTNAME=$(cat /etc/hostname)-${RESIN_DEVICE_UUID:0:6}
 echo $HOSTNAME > /etc/hostname
 echo "127.0.1.1 $HOSTNAME" >> /etc/hosts
@@ -24,15 +30,22 @@ mount --move /tmp /dev
 ln -sf /dev/pts/ptmx /dev/ptmx
 
 mount -t debugfs nodev /sys/kernel/debug
+
+# trap the stop signal then send SIGTERM to user processes
+trap 'signal_handler ' "$RESIN_STOP_SIGNAL SIGTERM"
+
 udevd & 
 udevadm trigger &> /dev/null
 	
 CMD=$(which $1)
-# echo error message, when executable file doesn't exist.
 if [  $? == '0' ]; then
 	shift
-	exec "$CMD" "$@"
+	"$CMD" "$@" &
+	pid=$!
+
+	wait $!
 else
+	# echo error message, when executable file doesn't exist.
 	echo "Command not found: $1"
 	exit 1
 fi
