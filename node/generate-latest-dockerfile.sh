@@ -194,6 +194,53 @@ for device in $devices; do
 				-e s~#{CHECKSUM}~"$checksum"~g \
 				-e s~#{TARGET_ARCH}~$binary_arch~g Dockerfile.i386.edison.slim.tpl > $debian_dockerfilePath/slim/Dockerfile
 		fi
+
+		# Alpine
+		case "$device" in
+		'x64')
+			binary_arch='alpine-x64'
+			binary_url=$resinUrl
+		;;
+		'x86')
+			binary_arch='alpine-x86'
+			binary_url=$resinUrl
+		;;
+		'armel')
+			# armel not supported yet.
+			continue
+		;;
+		*)
+			binary_arch='alpine-armhf'
+			binary_url=$resinUrl
+		;;
+		esac
+		extract_checksum 0 $nodeVersion
+
+		alpine_dockerfilePath=$device/alpine/$baseVersion
+
+		mkdir -p $alpine_dockerfilePath
+		sed -e s~#{FROM}~resin/$device-alpine-buildpack-deps:latest~g \
+			-e s~#{BINARY_URL}~$binary_url~g \
+			-e s~#{NODE_VERSION}~$nodeVersion~g \
+			-e s~#{CHECKSUM}~"$checksum"~g \
+			-e s~#{TARGET_ARCH}~$binary_arch~g Dockerfile.alpine.tpl > $alpine_dockerfilePath/Dockerfile
+
+		mkdir -p $alpine_dockerfilePath/slim
+		sed -e s~#{FROM}~resin/$device-alpine:latest~g \
+			-e s~#{BINARY_URL}~$binary_url~g \
+			-e s~#{NODE_VERSION}~$nodeVersion~g \
+			-e s~#{CHECKSUM}~"$checksum"~g \
+			-e s~#{TARGET_ARCH}~$binary_arch~g Dockerfile.alpine.slim.tpl > $alpine_dockerfilePath/slim/Dockerfile
+
+		mkdir -p $alpine_dockerfilePath/onbuild
+		sed -e s~#{FROM}~resin/$device-alpine-node:$nodeVersion~g Dockerfile.onbuild.tpl > $alpine_dockerfilePath/onbuild/Dockerfile
+
+		mkdir -p $alpine_dockerfilePath/edge
+		sed -e s~#{FROM}~resin/$device-alpine-buildpack-deps:edge~g \
+			-e s~#{BINARY_URL}~$binary_url~g \
+			-e s~#{NODE_VERSION}~$nodeVersion~g \
+			-e s~#{CHECKSUM}~"$checksum"~g \
+			-e s~#{TARGET_ARCH}~$binary_arch~g Dockerfile.alpine.tpl > $alpine_dockerfilePath/edge/Dockerfile
 	done
 done
 
