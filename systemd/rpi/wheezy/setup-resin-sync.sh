@@ -16,21 +16,22 @@ extract_json_value() {
 }
 
 if [ -f /data/commit ]; then
-    curl -X GET --header "Content-Type:application/json" "$RESIN_SUPERVISOR_ADDRESS/v1/device?apikey=$RESIN_SUPERVISOR_API_KEY" | extract_json_value 'commit' > /data/commit
-else
     mkdir -p /data/.resin-watch
 
-    CURRENT_COMMIT=$(curl -X GET --header "Content-Type:application/json" "$RESIN_SUPERVISOR_ADDRESS/v1/device?apikey=$RESIN_SUPERVISOR_API_KEY" | extract_json_value 'commit')
+    CURRENT_COMMIT=$(curl -s -X GET --header "Content-Type:application/json" "$RESIN_SUPERVISOR_ADDRESS/v1/device?apikey=$RESIN_SUPERVISOR_API_KEY" | extract_json_value 'commit')
     read -r PREV_COMMIT</data/commit
 
     #Only copy if the commit hash is the same since the last time we restarted
-    if [ "$CURRENT_COMMIT" == "PREV_COMMIT" ]; then
+    if [ "$CURRENT_COMMIT" == "$PREV_COMMIT" ]; then
+        echo "commit is the same...copying src"
         cp -rf /data/.resin-watch/* /usr/src/app/
     else
         #If the commit is different, then we probaby pushed, so dont copy, but just update the commit hash file.
-        curl -X GET --header "Content-Type:application/json" "$RESIN_SUPERVISOR_ADDRESS/v1/device?apikey=$RESIN_SUPERVISOR_API_KEY" | extract_json_value 'commit' > /data/commit
+        curl -s -X GET --header "Content-Type:application/json" "$RESIN_SUPERVISOR_ADDRESS/v1/device?apikey=$RESIN_SUPERVISOR_API_KEY" | extract_json_value 'commit' > /data/commit
     fi
-
+else
+    echo "commit file doesnt exist yet"
+    curl -s -X GET --header "Content-Type:application/json" "$RESIN_SUPERVISOR_ADDRESS/v1/device?apikey=$RESIN_SUPERVISOR_API_KEY" | extract_json_value 'commit' > /data/commit
 fi
 
 
